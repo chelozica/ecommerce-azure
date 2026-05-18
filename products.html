@@ -1,18 +1,40 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
     <title>Produtos</title>
+    <meta charset="UTF-8">
 </head>
 <body>
-    <h1>Produtos</h1>
 
-    <ul>
-        <li>Camisita básica - R$ 100</li>
-        <li>Saia básica - R$ 200</li>
-        <li>Vestidinho - R$ 300</li>
-    </ul>
+<h1>Produtos</h1>
 
-    <a href="index.html">Voltar</a>
+<div id="product-list"></div>
+
+<a href="index.html">Voltar</a>
+
+<script src="products.js"></script>
+
+<script>
+    const container = document.getElementById('product-list');
+
+    products.forEach(p => {
+        const div = document.createElement('div');
+
+        div.innerHTML = `
+            <h3>${p.name}</h3>
+            <img src="${p.image}" width="100"/>
+            <p>Preço: R$ ${p.price}</p>
+            <button onclick="addToCart(${p.id})">Adicionar ao carrinho</button>
+            <hr/>
+        `;
+
+        container.appendChild(div);
+    });
+
+    function addToCart(id) {
+        alert("Produto " + id + " adicionado ao carrinho");
+    }
+</script>
+
 </body>
 </html>
