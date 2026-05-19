@@ -1,42 +1,26 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Produtos</title>
-</head>
-<body>
-
-<a href="cart.html">🛒 Ver carrinho</a>
-
-<h1>Produtos</h1>
-
-<div id="product-list"></div>
-
-<a href="index.html">Voltar</a>
-
-<!-- IMPORTANTE: ordem dos scripts -->
-<script src="products.js"></script>
-<script src="cart.js"></script>
-
 <script>
-    const container = document.getElementById('product-list');
+    async function loadProducts() {
+        const response = await fetch('/api/products');
+        const products = await response.json();
 
-    products.forEach(p => {
-        const div = document.createElement('div');
+        const container = document.getElementById('product-list');
+        container.innerHTML = '';
 
-        div.innerHTML = `
-            <h3>${p.name}</h3>
-            <img src="${p.image}" width="100"/>
-            <p>Preço: R$ ${p.price}</p>
-            <button onclick="addToCart(${p.id})">
-                Adicionar ao carrinho
-            </button>
-            <hr/>
-        `;
+        products.forEach(p => {
+            const div = document.createElement('div');
 
-        container.appendChild(div);
-    });
+            div.innerHTML = `
+                <h3>${p.name}</h3>
+                <p>Preço: R$ ${p.price}</p>
+                <button onclick="addToCart(${p.id})">
+                    Adicionar ao carrinho
+                </button>
+                <hr/>
+            `;
+
+            container.appendChild(div);
+        });
+    }
+
+    loadProducts();
 </script>
-
-</body>
-</html>
