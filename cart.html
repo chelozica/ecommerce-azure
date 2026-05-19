@@ -8,6 +8,7 @@
 
 <h1>Seu Carrinho 🛒</h1>
 
+<button onclick="checkout()">Finalizar compra 💳</button>    
 <button onclick="clearCart()">Esvaziar carrinho</button>
 
 <div id="cart-items"></div>
@@ -51,6 +52,28 @@
     }
 
     window.onload = loadCart;
+    async function checkout() {
+    const cart = getCart();
+
+    if (cart.length === 0) {
+        alert("Carrinho vazio");
+        return;
+    }
+
+    const response = await fetch('/api/createOrder', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(cart)
+    });
+
+    const result = await response.json();
+
+    alert(result.message);
+
+    clearCart();
+}
 </script>
 
 </body>
