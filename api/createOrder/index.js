@@ -30,10 +30,12 @@ module.exports = async function (context, req) {
         });
     }
 
+    const now = new Date().toISOString();
     const order = {
         id: randomUUID(),
-        createdAt: new Date().toISOString(),
+        createdAt: now,
         status: "novo",
+        history: [{ from: null, to: "novo", at: now, by: "cliente" }],
         items,
         total: items.reduce((sum, i) => sum + i.subtotal, 0)
     };

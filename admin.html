@@ -9,6 +9,15 @@
         th, td { border: 1px solid #ccc; padding: 8px; text-align: left; vertical-align: top; }
         th { background: #f3f3f3; }
         .total { font-weight: bold; }
+        .badge { padding: 2px 8px; border-radius: 10px; font-size: 0.85rem; background: #eee; white-space: nowrap; }
+        .novo { background: #fff3cd; }
+        .pago { background: #cfe2ff; }
+        .em_separacao { background: #e2d9f3; }
+        .enviado { background: #d1ecf1; }
+        .entregue { background: #d4edda; }
+        .cancelado { background: #f8d7da; }
+        .actions button { margin: 2px 0; display: block; }
+        details { font-size: 0.85rem; margin-top: 4px; }
     </style>
 </head>
 <body>
@@ -16,7 +25,13 @@
 <h1>Pedidos 📦</h1>
 <p id="user"></p>
 <p>
+    <label>Status:
+        <select id="status-filter" onchange="loadOrders()">
+            <option value="">Todos</option>
+        </select>
+    </label>
     <button onclick="loadOrders()">Atualizar</button>
+    <a href="index.html">Loja</a> |
     <a href="/.auth/logout?post_logout_redirect_uri=/index.html">Sair</a>
 </p>
 
@@ -24,10 +39,24 @@
 <div id="orders"></div>
 
 <script>
+    let statusLabels = {};
+
     function escapeHtml(text) {
         const div = document.createElement('div');
-        div.textContent = String(text);
+        div.textContent = text == null ? '' : String(text);
         return div.innerHTML;
+    }
+
+    function formatDate(iso) {
+        return new Date(iso).toLocaleString('pt-BR');
+    }
+
+    function fillStatusFilter(statuses) {
+        const select = document.getElementById('status-filter');
+        if (select.options.length > 1) return;
+        Object.entries(statuses).forEach(([value, label]) => {
+            select.add(new Option(label, value));
+        });
     }
 
     async function showUser() {
@@ -38,44 +67,97 @@
         }
     }
 
+    function renderHistory(order) {
+        const entries = (order.history || []).map(h => `
+            <li>${escapeHtml(formatDate(h.at))}: ${escapeHtml(statusLabels[h.from] || '—')} → 
+            <b>${escapeHtml(statusLabels[h.to] || h.to)}</b> (${escapeHtml(h.by)})</li>
+        `).join('');
+        return entries ? `<details><summary>Histórico</summary><ul>${entries}</ul></details>` : '';
+    }
+
+    function renderActions(order) {
+        if (order.nextStatuses.length === 0) return '<i>Finalizado</i>';
+        return order.nextStatuses.map(s => `
+            <button onclick="changeStatus('${order.id}', '${s.value}')">→ ${escapeHtml(s.label)}</button>
+        `).join('');
+    }
+
     async function loadOrders() {
         const container = document.getElementById('orders');
         const summary = document.getElementById('summary');
+        const filter = document.getElementById('status-filter').value;
         container.innerHTML = '<p>Carregando...</p>';
 
-        const response = await fetch('/api/orders');
+        const url = filter ? `/api/orders?status=${encodeURIComponent(filter)}` : '/api/orders';
+        const response = await fetch(url);
         if (!response.ok) {
             container.innerHTML = `<p>Erro ao carregar pedidos (HTTP ${response.status})</p>`;
             return;
         }
 
-        const orders = await response.json();
-        const revenue = orders.reduce((sum, o) => sum + o.total, 0);
-        summary.textContent = `${orders.length} pedido(s) — faturamento total: R$ ${revenue}`;
+        const data = await response.json();
+        statusLabels = data.statuses;
+        fillStatusFilter(data.statuses);
+        const orders = data.orders;
+
+        const revenue = orders
+            .filter(o => o.status !== 'cancelado')
+            .reduce((sum, o) => sum + o.total, 0);
+        summary.textContent = `${orders.length} pedido(s) — faturamento (sem cancelados): R$ ${revenue}`;
 
         if (orders.length === 0) {
-            container.innerHTML = '<p>Nenhum pedido ainda.</p>';
+            container.innerHTML = '<p>Nenhum pedido encontrado.</p>';
             return;
         }
 
         const rows = orders.map(o => `
             <tr>
-                <td>${escapeHtml(new Date(o.createdAt).toLocaleString('pt-BR'))}</td>
+                <td>${escapeHtml(formatDate(o.createdAt))}</td>
                 <td>${escapeHtml(o.id.slice(0, 8))}</td>
                 <td>${o.items.map(i => `${i.quantity}x ${escapeHtml(i.name)} (R$ ${i.subtotal})`).join('<br>')}</td>
                 <td class="total">R$ ${escapeHtml(o.total)}</td>
-                <td>${escapeHtml(o.status)}</td>
+                <td>
+                    <span class="badge ${escapeHtml(o.status)}">${escapeHtml(o.statusLabel)}</span>
+                    ${o.trackingCode ? `<br><small>Rastreio: ${escapeHtml(o.trackingCode)}</small>` : ''}
+                    ${renderHistory(o)}
+                </td>
+                <td class="actions">${renderActions(o)}</td>
             </tr>
         `).join('');
 
         container.innerHTML = `
             <table>
                 <thead>
-                    <tr><th>Data</th><th>Pedido</th><th>Itens</th><th>Total</th><th>Status</th></tr>
+                    <tr><th>Data</th><th>Pedido</th><th>Itens</th><th>Total</th><th>Status</th><th>Ações</th></tr>
                 </thead>
                 <tbody>${rows}</tbody>
             </table>
         `;
+    }
+
+    async function changeStatus(orderId, newStatus) {
+        const label = statusLabels[newStatus];
+        const body = { status: newStatus };
+
+        if (newStatus === 'enviado') {
+            const code = prompt('Código de rastreio:');
+            if (!code) return;
+            body.trackingCode = code;
+        } else if (!confirm(`Mudar o pedido ${orderId.slice(0, 8)} para "${label}"?`)) {
+            return;
+        }
+
+        const response = await fetch(`/api/orders/${encodeURIComponent(orderId)}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const result = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            alert(result.message || `Erro (HTTP ${response.status})`);
+        }
+        loadOrders();
     }
 
     showUser();
