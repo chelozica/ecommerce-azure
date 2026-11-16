@@ -1,0 +1,12 @@
+{
+  "routes": [
+    { "route": "/admin.html", "allowedRoles": ["admin"] },
+    { "route": "/api/orders", "allowedRoles": ["admin"] }
+  ],
+  "responseOverrides": {
+    "401": {
+      "redirect": "/.auth/login/github?post_login_redirect_uri=/admin.html",
+      "statusCode": 302
+    }
+  }
+}

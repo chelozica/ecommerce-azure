@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Pedidos - Admin</title>
+    <style>
+        body { font-family: sans-serif; margin: 2rem; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; vertical-align: top; }
+        th { background: #f3f3f3; }
+        .total { font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<h1>Pedidos 📦</h1>
+<p id="user"></p>
+<p>
+    <button onclick="loadOrders()">Atualizar</button>
+    <a href="/.auth/logout?post_logout_redirect_uri=/index.html">Sair</a>
+</p>
+
+<p id="summary"></p>
+<div id="orders"></div>
+
+<script>
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = String(text);
+        return div.innerHTML;
+    }
+
+    async function showUser() {
+        const response = await fetch('/.auth/me');
+        const { clientPrincipal } = await response.json();
+        if (clientPrincipal) {
+            document.getElementById('user').textContent = `Logado como: ${clientPrincipal.userDetails}`;
+        }
+    }
+
+    async function loadOrders() {
+        const container = document.getElementById('orders');
+        const summary = document.getElementById('summary');
+        container.innerHTML = '<p>Carregando...</p>';
+
+        const response = await fetch('/api/orders');
+        if (!response.ok) {
+            container.innerHTML = `<p>Erro ao carregar pedidos (HTTP ${response.status})</p>`;
+            return;
+        }
+
+        const orders = await response.json();
+        const revenue = orders.reduce((sum, o) => sum + o.total, 0);
+        summary.textContent = `${orders.length} pedido(s) — faturamento total: R$ ${revenue}`;
+
+        if (orders.length === 0) {
+            container.innerHTML = '<p>Nenhum pedido ainda.</p>';
+            return;
+        }
+
+        const rows = orders.map(o => `
+            <tr>
+                <td>${escapeHtml(new Date(o.createdAt).toLocaleString('pt-BR'))}</td>
+                <td>${escapeHtml(o.id.slice(0, 8))}</td>
+                <td>${o.items.map(i => `${i.quantity}x ${escapeHtml(i.name)} (R$ ${i.subtotal})`).join('<br>')}</td>
+                <td class="total">R$ ${escapeHtml(o.total)}</td>
+                <td>${escapeHtml(o.status)}</td>
+            </tr>
+        `).join('');
+
+        container.innerHTML = `
+            <table>
+                <thead>
+                    <tr><th>Data</th><th>Pedido</th><th>Itens</th><th>Total</th><th>Status</th></tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        `;
+    }
+
+    showUser();
+    loadOrders();
+</script>
+
+</body>
+</html>

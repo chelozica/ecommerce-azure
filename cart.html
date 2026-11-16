@@ -70,7 +70,12 @@
 
     const result = await response.json();
 
-    alert(result.message);
+    if (!response.ok) {
+        alert(result.message || "Erro ao finalizar a compra");
+        return;
+    }
+
+    alert(`${result.message}\nPedido: ${result.orderId.slice(0, 8)}\nTotal: R$ ${result.total}`);
 
     clearCart();
 }
