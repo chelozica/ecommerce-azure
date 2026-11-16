@@ -10,6 +10,33 @@
     <p>Primeiro projeto de e-commerce no Azure desenvolvido pelo chelozica</p>
 
     <a href="products.html">Ver produtos</a>
+
+    <footer style="margin-top: 3rem; font-size: 0.85rem;">
+        <span id="auth-area"><a href="/.auth/login/github?post_login_redirect_uri=/index.html">Entrar</a></span>
+    </footer>
+
+    <script>
+        // /.auth/me é uma rota do próprio Static Web App que diz quem está logado e seus papéis.
+        // Esconder o link é só visual: a proteção real está no staticwebapp.config.json.
+        async function showAuthArea() {
+            try {
+                const response = await fetch('/.auth/me');
+                const { clientPrincipal } = await response.json();
+                if (!clientPrincipal) return;
+
+                const area = document.getElementById('auth-area');
+                const logout = '<a href="/.auth/logout?post_logout_redirect_uri=/index.html">Sair</a>';
+
+                area.innerHTML = clientPrincipal.userRoles.includes('admin')
+                    ? `<a href="admin.html">🔒 Área admin</a> | ${logout}`
+                    : logout;
+            } catch (err) {
+                console.error('Não foi possível verificar o login', err);
+            }
+        }
+
+        showAuthArea();
+    </script>
 </body>
 </html>
 
