@@ -1,42 +1,78 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Loja da Juju</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>básico da villa — o essencial, bem feito</title>
+    <meta name="description" content="básico da villa — peças essenciais, atemporais e descomplicadas.">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
 </head>
-<body>
-    <h1>Bem-vindo ao basico da vila</h1>
-    <p>Nossa missão: estilo descomplicado para mulheres básicas e elegantes</p>
-    <p>Primeiro projeto de e-commerce no Azure desenvolvido pelo chelozica</p>
+<body><header class="site-header">
+    <div class="container header-inner">
+        <a href="index.html" class="brand" aria-label="básico da villa — início">
+            <svg viewBox="0 0 36 40" aria-hidden="true">
+                <path d="M6 38V17a12 12 0 0 1 24 0v21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M2 38h32" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            <span>básico da villa</span>
+        </a>
+        <nav class="nav" aria-label="Principal">
+            <a href="products.html">Coleção</a>
+            <a href="cart.html" class="cart-link">Sacola <span class="cart-count" data-cart-count hidden>0</span></a>
+        </nav>
+    </div>
+</header>
+<main>
+    <section class="hero container">
+        <p class="eyebrow">Coleção essencial</p>
+        <h1>O básico,<br>bem feito.</h1>
+        <p class="lead">Peças atemporais e descomplicadas para mulheres que valorizam elegância sem esforço.</p>
+        <a class="btn btn-primary" href="products.html">Ver coleção</a>
+    </section>
 
-    <a href="products.html">Ver produtos</a>
+    <section class="container section">
+        <div class="section-head">
+            <h2>Destaques</h2>
+            <a class="link" href="products.html">Ver tudo</a>
+        </div>
+        <div class="product-grid" id="featured"></div>
+    </section>
 
-    <footer style="margin-top: 3rem; font-size: 0.85rem;">
+    <section class="container values">
+        <div>
+            <h3>Essenciais</h3>
+            <p>Poucas peças, escolhidas para combinar entre si e durar além da estação.</p>
+        </div>
+        <div>
+            <h3>Qualidade</h3>
+            <p>Tecidos confortáveis e acabamento cuidadoso em cada detalhe.</p>
+        </div>
+        <div>
+            <h3>Simplicidade</h3>
+            <p>Uma compra rápida e clara, do início ao fim.</p>
+        </div>
+    </section>
+</main>
+<footer class="site-footer">
+    <div class="container footer-inner">
+        <span>© 2026 básico da villa</span>
         <span id="auth-area"><a href="/.auth/login/github?post_login_redirect_uri=/index.html">Entrar</a></span>
-    </footer>
+    </div>
+</footer>
 
-    <script>
-        // /.auth/me é uma rota do próprio Static Web App que diz quem está logado e seus papéis.
-        // Esconder o link é só visual: a proteção real está no staticwebapp.config.json.
-        async function showAuthArea() {
-            try {
-                const response = await fetch('/.auth/me');
-                const { clientPrincipal } = await response.json();
-                if (!clientPrincipal) return;
-
-                const area = document.getElementById('auth-area');
-                const logout = '<a href="/.auth/logout?post_logout_redirect_uri=/index.html">Sair</a>';
-
-                area.innerHTML = clientPrincipal.userRoles.includes('admin')
-                    ? `<a href="admin.html">🔒 Área admin</a> | ${logout}`
-                    : logout;
-            } catch (err) {
-                console.error('Não foi possível verificar o login', err);
-            }
-        }
-
-        showAuthArea();
-    </script>
+<script src="cart.js"></script>
+<script src="site.js"></script><script>
+    fetchProducts()
+        .then(products => {
+            document.getElementById("featured").innerHTML = products.slice(0, 3).map(renderProductCard).join("");
+        })
+        .catch(() => {
+            document.getElementById("featured").innerHTML = '<p class="muted">Não foi possível carregar os produtos.</p>';
+        });
+</script>
 </body>
 </html>
-

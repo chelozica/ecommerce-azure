@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 230 40" width="230" height="40" role="img" aria-label="básico da villa">
+  <path d="M6 34V17a11 11 0 0 1 22 0v17" fill="none" stroke="#1A1A1A" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M2 34h30" stroke="#1A1A1A" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="44" y="27" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="19" font-weight="500" letter-spacing="0.4" fill="#1A1A1A">básico da villa</text>
+</svg>

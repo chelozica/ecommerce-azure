@@ -1,85 +1,142 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Carrinho</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sacola — básico da villa</title>
+    <meta name="description" content="básico da villa — peças essenciais, atemporais e descomplicadas.">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body><header class="site-header">
+    <div class="container header-inner">
+        <a href="index.html" class="brand" aria-label="básico da villa — início">
+            <svg viewBox="0 0 36 40" aria-hidden="true">
+                <path d="M6 38V17a12 12 0 0 1 24 0v21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M2 38h32" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            <span>básico da villa</span>
+        </a>
+        <nav class="nav" aria-label="Principal">
+            <a href="products.html">Coleção</a>
+            <a href="cart.html" class="cart-link" aria-current="page">Sacola <span class="cart-count" data-cart-count hidden>0</span></a>
+        </nav>
+    </div>
+</header>
+<main class="container">
+    <section class="page-title">
+        <h1>Sacola</h1>
+    </section>
 
-<h1>Seu Carrinho 🛒</h1>
-
-<button onclick="checkout()">Finalizar compra 💳</button>    
-<button onclick="clearCart()">Esvaziar carrinho</button>
-
-<div id="cart-items"></div>
-
-<a href="products.html">Voltar para produtos</a>
+    <div id="cart-content">
+        <p class="muted">Carregando...</p>
+    </div>
+</main>
+<footer class="site-footer">
+    <div class="container footer-inner">
+        <span>© 2026 básico da villa</span>
+        <span id="auth-area"><a href="/.auth/login/github?post_login_redirect_uri=/index.html">Entrar</a></span>
+    </div>
+</footer>
 
 <script src="cart.js"></script>
+<script src="site.js"></script><script>
+    let products = [];
 
-<script>
-    async function loadCart() {
-        const cart = getCart();
-        const container = document.getElementById('cart-items');
+    function renderEmpty(title, message) {
+        document.getElementById("cart-content").innerHTML = `
+            <div class="empty-state">
+                <h2>${title}</h2>
+                <p>${message}</p>
+                <a class="btn btn-primary" href="products.html">Ver coleção</a>
+            </div>`;
+    }
+
+    function renderCart() {
+        const cart = getCart()
+            .map(item => ({ ...item, product: products.find(p => p.id === item.id) }))
+            .filter(item => item.product);
 
         if (cart.length === 0) {
-            container.innerHTML = "<p>Carrinho vazio</p>";
+            renderEmpty("Sua sacola está vazia", "Que tal conhecer nossas peças essenciais?");
             return;
         }
 
-        // 🔥 buscar produtos da API
-        const response = await fetch('/api/products');
-        const products = await response.json();
+        const itemCount = cart.reduce((sum, i) => sum + i.quantity, 0);
+        const total = cart.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
 
-        container.innerHTML = '';
+        const rows = cart.map(({ product, quantity }) => `
+            <div class="cart-item">
+                ${productMedia(product)}
+                <div>
+                    <div class="cart-item-name">${escapeHtml(product.name)}</div>
+                    <div class="cart-item-price">${formatPrice(product.price)}</div>
+                </div>
+                <div class="cart-item-side">
+                    <div class="qty" aria-label="Quantidade">
+                        <button onclick="changeQty(${product.id}, ${quantity - 1})" aria-label="Diminuir">−</button>
+                        <span>${quantity}</span>
+                        <button onclick="changeQty(${product.id}, ${quantity + 1})" aria-label="Aumentar">+</button>
+                    </div>
+                    <button class="link" onclick="changeQty(${product.id}, 0)">Remover</button>
+                </div>
+            </div>`).join("");
 
-        cart.forEach(item => {
-            const product = products.find(p => p.id === item.id);
-
-            if (!product) return;
-
-            const div = document.createElement('div');
-
-            div.innerHTML = `
-                <h3>${product.name}</h3>
-                <p>Quantidade: ${item.quantity}</p>
-                <p>Total: R$ ${product.price * item.quantity}</p>
-                <hr/>
-            `;
-
-            container.appendChild(div);
-        });
+        document.getElementById("cart-content").innerHTML = `
+            <div class="cart-layout">
+                <div>${rows}</div>
+                <aside class="summary">
+                    <h2>Resumo</h2>
+                    <div class="summary-row"><span>Itens</span><span>${itemCount}</span></div>
+                    <div class="summary-row"><span>Frete</span><span>Calculado na entrega</span></div>
+                    <div class="summary-total"><span>Total</span><span>${formatPrice(total)}</span></div>
+                    <button class="btn btn-primary btn-block" id="checkout-btn" onclick="checkout()">Finalizar compra</button>
+                    <a class="link" href="products.html">Continuar comprando</a>
+                </aside>
+            </div>`;
     }
 
-    window.onload = loadCart;
+    function changeQty(productId, quantity) {
+        setQuantity(productId, quantity);
+        renderCart();
+    }
+
     async function checkout() {
-    const cart = getCart();
+        const cart = getCart();
+        if (cart.length === 0) return;
 
-    if (cart.length === 0) {
-        alert("Carrinho vazio");
-        return;
+        const button = document.getElementById("checkout-btn");
+        button.disabled = true;
+        button.textContent = "Enviando...";
+
+        try {
+            const response = await fetch("/api/createOrder", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(cart)
+            });
+            const result = await response.json();
+
+            if (!response.ok) throw new Error(result.message || "Erro ao finalizar a compra");
+
+            clearCart();
+            renderEmpty(
+                "Pedido recebido",
+                `Obrigada! Seu pedido <strong>#${escapeHtml(result.orderId.slice(0, 8))}</strong> no valor de ${formatPrice(result.total)} foi registrado.`
+            );
+        } catch (err) {
+            showToast(err.message, "error");
+            button.disabled = false;
+            button.textContent = "Finalizar compra";
+        }
     }
 
-    const response = await fetch('/api/createOrder', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(cart)
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-        alert(result.message || "Erro ao finalizar a compra");
-        return;
-    }
-
-    alert(`${result.message}\nPedido: ${result.orderId.slice(0, 8)}\nTotal: R$ ${result.total}`);
-
-    clearCart();
-}
+    fetchProducts()
+        .then(list => { products = list; renderCart(); })
+        .catch(() => renderEmpty("Algo deu errado", "Não foi possível carregar a sacola. Tente novamente."));
 </script>
-
 </body>
 </html>
